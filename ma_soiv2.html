@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Sói Offline - Auto Balance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            /* Gradient tím than chuẩn vibe Ma Sói */
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- CARD LẬT 3D --- */
+        .perspective-container {
+            perspective: 1000px;
+            width: 300px;
+            height: 460px;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .flip-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Hiệu ứng nảy */
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .flip-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid rgba(255,255,255,0.1);
+        }
+
+        .card-front {
+            background: #1a1a1a;
+            background-image: radial-gradient(circle at center, #2c3e50 0%, #000000 100%);
+        }
+
+        .card-back {
+            background: #fff;
+            color: #000;
+            transform: rotateY(180deg);
+            padding: 20px;
+            text-align: center;
+            background-image: url('https://www.transparenttextures.com/patterns/aged-paper.png'); /* Texture giấy cũ */
+        }
+
+        .role-icon { font-size: 5rem; margin-bottom: 1rem; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)); }
+        
+        .setup-card { 
+            max-width: 450px; 
+            width: 90%; 
+            border: none; 
+            background: rgba(33, 37, 41, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Màu riêng cho từng vai */
+        .role-wolf { color: #e74c3c; }
+        .role-seer { color: #3498db; }
+        .role-guard { color: #2ecc71; }
+        .role-witch { color: #9b59b6; }
+        .role-hunter { color: #f1c40f; }
+        .role-elder { color: #1abc9c; }
+        .role-villager { color: #34495e; }
+
+        .animate-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container py-3">
+        
+        <div id="screen-setup" class="card setup-card mx-auto shadow-lg">
+            <div class="card-header bg-transparent border-0 text-center pt-4">
+                <h1 class="display-1 mb-0">🐺</h1>
+                <h2 class="fw-bold text-uppercase text-white">Ma Sói Offline</h2>
+                <p class="text-muted small">Chia bài tự động & Cân bằng game</p>
+            </div>
+            
+            <div class="card-body px-4 pb-5">
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-info">Số lượng người chơi:</label>
+                    <div class="input-group input-group-lg">
+                        <button class="btn btn-outline-secondary" type="button" onclick="adjustValue(-1)"><i class="bi bi-dash-lg"></i></button>
+                        <input type="number" id="totalPlayers" class="form-control text-center fw-bold" value="7" min="4" max="20" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="adjustValue(1)"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                    <div class="form-text text-center mt-2" id="preset-desc">
+                        </div>
+                </div>
+
+                <button onclick="startGame()" class="btn btn-danger btn-lg w-100 fw-bold shadow-sm py-3 rounded-pill text-uppercase">
+                    <i class="bi bi-play-circle-fill me-2"></i> Bắt đầu chia bài
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="d-none text-center w-100">
+            <h4 class="text-white mb-2">Người chơi số <span id="player-number" class="badge bg-danger rounded-pill fs-4">1</span></h4>
+            <p class="text-light opacity-50 small mb-4">Đưa máy cho người chơi, bấm vào thẻ để lật</p>
+
+            <div class="perspective-container" onclick="flipCard()">
+                <div class="flip-card" id="game-card">
+                    <div class="card-face card-front shadow">
+                        <i class="bi bi-fingerprint text-white fs-1 mb-3 opacity-50"></i>
+                        <h3 class="text-white fw-bold animate-pulse text-uppercase">Bấm để lật</h3>
+                    </div>
+                    <div class="card-face card-back shadow">
+                        <div class="role-icon" id="role-icon">🐺</div>
+                        <h2 class="fw-bold mb-2 text-uppercase" id="role-name">SÓI</h2>
+                        <hr class="w-50 mx-auto my-3 opacity-25">
+                        <p class="fs-6 px-2 mb-0" id="role-desc">Mô tả...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5" style="height: 60px;">
+                <button id="btn-next" onclick="nextPlayer()" class="btn btn-light btn-lg px-5 fw-bold shadow-lg rounded-pill d-none text-uppercase">
+                    Người tiếp theo <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-result" class="d-none mx-auto" style="max-width: 500px;">
+            <div class="card shadow-lg border-warning">
+                <div class="card-header bg-warning text-dark text-center py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>DANH SÁCH VAI TRÒ</h4>
+                    <small class="fw-bold text-danger">⚠️ Chỉ dành cho Quản Trò!</small>
+                </div>
+                <div class="card-body p-0" style="max-height: 65vh; overflow-y: auto;">
+                    <ul class="list-group list-group-flush" id="result-list">
+                        </ul>
+                </div>
+                <div class="card-footer p-3 bg-dark border-top border-secondary">
+                    <button onclick="location.reload()" class="btn btn-outline-warning w-100 fw-bold py-2">
+                        <i class="bi bi-arrow-repeat me-2"></i>Chơi Ván Mới
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. ĐỊNH NGHĨA VAI TRÒ ---
+        const roleDefinitions = {
+            'WEREWOLF': { name: 'MA SÓI', icon: '🐺', desc: 'Đêm: Chọn giết 1 người. Ngày: Giả làm dân.', colorClass: 'role-wolf', badge: 'bg-danger' },
+            'SEER': { name: 'TIÊN TRI', icon: '🔮', desc: 'Mỗi đêm soi 1 người để biết là Sói hay Dân.', colorClass: 'role-seer', badge: 'bg-info text-dark' },
+            'GUARD': { name: 'BẢO VỆ', icon: '🛡️', desc: 'Mỗi đêm bảo vệ 1 người (không trùng 2 đêm liền).', colorClass: 'role-guard', badge: 'bg-success' },
+            'WITCH': { name: 'PHÙ THỦY', icon: '🧙‍♀️', desc: 'Có 1 bình Cứu và 1 bình Giết. Dùng 1 lần duy nhất.', colorClass: 'role-witch', badge: 'bg-purple' },
+            'HUNTER': { name: 'THỢ SĂN', icon: '🏹', desc: 'Khi chết có thể chọn kéo theo 1 người khác.', colorClass: 'role-hunter', badge: 'bg-warning text-dark' },
+            'ELDER': { name: 'TRƯỞNG LÀNG', icon: '👴', desc: 'Có 2 mạng (Sói cắn 2 lần mới chết).', colorClass: 'role-elder', badge: 'bg-primary' },
+            'VILLAGER': { name: 'DÂN LÀNG', icon: '👱', desc: 'Ngủ ban đêm. Ban ngày suy luận tìm ra sói.', colorClass: 'role-villager', badge: 'bg-secondary' }
+        };
+
+        // --- 2. CÔNG THỨC CHIA BÀI (PRESETS) ---
+        // Cấu trúc: wolves: số lượng sói | specials: mảng các vai đặc biệt (mảng con [] nghĩa là random chọn 1 trong số đó)
+        const gamePresets = {
+            4:  { wolves: 1, specials: [['SEER', 'GUARD']] }, // Test mode
+            5:  { wolves: 1, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'VILLAGER'] }, // 1 Sói, 2 ĐB, 2 Dân
+            6:  { wolves: 2, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'ELDER'] }, // 2 Sói, 3 ĐB, 1 Dân
+            7:  { wolves: 2, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'ELDER', 'VILLAGER'] }, // 2 Sói, 3 ĐB, 2 Dân
+            8:  { wolves: 2, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }, // 2 Sói, 5 ĐB, 1 Dân (Cân bằng lại so với request gốc)
+            9:  { wolves: 3, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }, // 3 Sói, 5 ĐB, 1 Dân
+            10: { wolves: 3, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }, // 3 Sói, 5 ĐB, 2 Dân
+            11: { wolves: 3, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }, // 3 Sói, 5 ĐB, 3 Dân
+            12: { wolves: 4, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }  // 4 Sói
+        };
+
+        let rolesArray = [];
+        let currentPlayerIndex = 0;
+        let isFlipped = false;
+
+        // Xử lý nút tăng giảm
+        function adjustValue(delta) {
+            const input = document.getElementById('totalPlayers');
+            let val = parseInt(input.value) + delta;
+            if (val >= 4 && val <= 20) {
+                input.value = val;
+                updatePresetDesc(val);
+            }
+        }
+
+        // Hiện mô tả cấu hình trước khi chơi
+        function updatePresetDesc(val) {
+            const descDiv = document.getElementById('preset-desc');
+            const config = gamePresets[val];
+            if (config) {
+                descDiv.innerHTML = `<span class="badge bg-danger">${config.wolves} Sói</span> + Các vai đặc biệt & Dân`;
+            } else {
+                descDiv.innerHTML = `<span class="badge bg-danger">${Math.floor(val/3)} Sói</span> (Cấu hình tự động)`;
+            }
+        }
+        
+        // Gọi lần đầu
+        updatePresetDesc(7);
+
+        function startGame() {
+            const total = parseInt(document.getElementById('totalPlayers').value);
+            
+            // Lấy config hoặc tạo config mặc định
+            let config = gamePresets[total];
+            if (!config) {
+                config = { 
+                    wolves: Math.floor(total / 3), 
+                    specials: ['SEER', 'GUARD', 'WITCH', 'HUNTER', 'ELDER'] 
+                };
+            }
+
+            rolesArray = [];
+
+            // 1. Thêm Sói
+            for (let i = 0; i < config.wolves; i++) rolesArray.push('WEREWOLF');
+
+            // 2. Thêm Vai đặc biệt (Xử lý Random)
+            if (config.specials) {
+                config.specials.forEach(item => {
+                    if (Array.isArray(item)) {
+                        // Random chọn 1 trong mảng (Ví dụ: [Bảo vệ, Tiên tri])
+                        const randomRole = item[Math.floor(Math.random() * item.length)];
+                        rolesArray.push(randomRole);
+                    } else {
+                        rolesArray.push(item);
+                    }
+                });
+            }
+
+            // 3. Lấp đầy bằng Dân Làng
+            while (rolesArray.length < total) {
+                rolesArray.push('VILLAGER');
+            }
+
+            // Cắt bớt nếu logic sai (An toàn)
+            if (rolesArray.length > total) rolesArray = rolesArray.slice(0, total);
+
+            // Tráo bài
+            shuffleArray(rolesArray);
+
+            // Chuyển cảnh
+            document.getElementById('screen-setup').classList.add('d-none');
+            document.getElementById('screen-game').classList.remove('d-none');
+            updateCardView();
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function updateCardView() {
+            const card = document.getElementById('game-card');
+            const btnNext = document.getElementById('btn-next');
+            
+            // Reset trạng thái thẻ
+            card.classList.remove('flipped');
+            btnNext.classList.add('d-none');
+            isFlipped = false;
+            
+            document.getElementById('player-number').innerText = currentPlayerIndex + 1;
+
+            const roleKey = rolesArray[currentPlayerIndex];
+            const roleData = roleDefinitions[roleKey];
+
+            // Delay cập nhật nội dung để tránh lộ khi thẻ đang quay
+            setTimeout(() => {
+                document.getElementById('role-name').innerText = roleData.name;
+                document.getElementById('role-icon').innerText = roleData.icon;
+                document.getElementById('role-desc').innerText = roleData.desc;
+                
+                // Đổi màu chữ
+                const nameEl = document.getElementById('role-name');
+                nameEl.className = `fw-bold mb-2 text-uppercase ${roleData.colorClass}`;
+            }, 300);
+        }
+
+        function flipCard() {
+            if (isFlipped) return;
+            document.getElementById('game-card').classList.add('flipped');
+            isFlipped = true;
+            setTimeout(() => {
+                document.getElementById('btn-next').classList.remove('d-none');
+            }, 800);
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex < rolesArray.length) {
+                updateCardView();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('screen-game').classList.add('d-none');
+            document.getElementById('screen-result').classList.remove('d-none');
+
+            const list = document.getElementById('result-list');
+            list.innerHTML = '';
+            
+            rolesArray.forEach((role, index) => {
+                const r = roleDefinitions[role];
+                list.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent text-white border-secondary">
+                        <span class="fw-bold">Người ${index + 1}</span>
+                        <span class="badge rounded-pill ${r.badge}">${r.icon} ${r.name}</span>
+                    </li>`;
+            });
+        }
+    </script>
+</body>
+</html>
