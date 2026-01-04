@@ -186,7 +186,7 @@
         // Cấu trúc: wolves: số lượng sói | specials: mảng các vai đặc biệt (mảng con [] nghĩa là random chọn 1 trong số đó)
         const gamePresets = {
             4:  { wolves: 1, specials: [['SEER', 'GUARD']] }, // Test mode
-            5:  { wolves: 1, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'VILLAGER'] }, // 1 Sói, 2 ĐB, 2 Dân
+            5:  { wolves: 2, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'ELDER'] }, // 1 Sói, 2 ĐB, 2 Dân
             6:  { wolves: 2, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'ELDER'] }, // 2 Sói, 3 ĐB, 1 Dân
             7:  { wolves: 2, specials: [['GUARD', 'SEER'], ['WITCH', 'HUNTER'], 'ELDER', 'VILLAGER'] }, // 2 Sói, 3 ĐB, 2 Dân
             8:  { wolves: 2, specials: ['GUARD', 'SEER', 'WITCH', 'HUNTER', 'ELDER'] }, // 2 Sói, 5 ĐB, 1 Dân (Cân bằng lại so với request gốc)
